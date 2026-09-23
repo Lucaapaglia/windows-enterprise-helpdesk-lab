@@ -1,6 +1,6 @@
 # Windows Enterprise Helpdesk Lab
 
-Hands-on Windows enterprise helpdesk lab built to demonstrate practical entry-level IT support and systems administration skills using Active Directory, DNS, Windows 11, PowerShell, networking, permissions, Group Policy, and structured troubleshooting.
+Hands-on Windows enterprise helpdesk lab built to demonstrate practical entry-level IT support and systems administration skills using Active Directory, DNS, Windows 11, PowerShell, networking, permissions, Group Policy, least-privilege administration, and structured troubleshooting.
 
 ## Current Implementation
 
@@ -21,8 +21,8 @@ The lab currently includes:
 - Item-level targeting based on AD group membership
 - tested PowerShell user-onboarding automation
 - tested PowerShell user-offboarding automation
-- duplicate-account and department validation
-- end-to-end onboarding and offboarding verification
+- delegated helpdesk administration with scoped AD permissions
+- end-to-end onboarding and offboarding verification without Domain Admin
 - real troubleshooting write-ups based on configuration issues encountered during the lab
 
 ## Lab Topology
@@ -103,6 +103,21 @@ The onboarding workflow was tested end-to-end with a Finance user. The account r
 
 The same test account was then offboarded. It was disabled, removed from `GG-Finance`, moved to `Disabled Users`, and a fresh workstation sign-in was rejected as expected.
 
+## Delegated Helpdesk Administration
+
+A dedicated `GG-Helpdesk-Admins` group is used for scoped user-management permissions.
+
+The test operator `alex.helpdesk` remained outside Domain Admins, Enterprise Admins, and Administrators while successfully:
+
+- creating `nora.larsen` in the HR OU
+- adding the account to `GG-HR`
+- disabling the account
+- removing `GG-HR`
+- moving the account to `Disabled Users`
+- updating the offboarding description
+
+This verifies that routine user lifecycle work can be completed with delegated permissions instead of broad domain-administrator access.
+
 ## Documentation
 
 - [Lab architecture](docs/architecture.md)
@@ -113,6 +128,7 @@ The same test account was then offboarded. It was disabled, removed from `GG-Fin
 - [Group Policy configuration](docs/group-policy.md)
 - [User onboarding automation](docs/user-onboarding.md)
 - [User offboarding automation](docs/user-offboarding.md)
+- [Delegated helpdesk administration](docs/delegated-helpdesk-administration.md)
 
 ## Troubleshooting Tickets
 
@@ -138,6 +154,7 @@ These tickets document real configuration issues encountered during the project 
 - RSOP and `gpresult`
 - PowerShell AD automation
 - user lifecycle management
+- delegated least-privilege administration
 - input validation and duplicate checks
 - Windows Security Event Log troubleshooting
 - technical documentation
@@ -147,7 +164,6 @@ These tickets document real configuration issues encountered during the project 
 
 Planned additions include:
 
-- delegated helpdesk permissions / least-privilege administration
 - improved script safety and `-WhatIf` support
 - additional DNS and network troubleshooting scenarios
 - final repository polish and network diagram

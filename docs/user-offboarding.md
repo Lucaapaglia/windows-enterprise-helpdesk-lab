@@ -58,26 +58,12 @@ The script reported:
 [OK] Account moved
 ```
 
-Verification:
-
-```powershell
-Get-ADUser clara.andersen -Properties Enabled,Description |
-    Select-Object Name,Enabled,Description,DistinguishedName
-```
-
-The resulting state was:
+Verification showed:
 
 ```text
 Enabled: False
 Description: Offboarded 2026-09-23
 OU: Disabled Users
-```
-
-Group membership was checked with:
-
-```powershell
-Get-ADPrincipalGroupMembership clara.andersen |
-    Select-Object Name
 ```
 
 Only `Domain Users` remained.
@@ -94,6 +80,30 @@ Your account has been disabled. Please see your system administrator.
 
 This confirmed the expected disabled-account behavior for a new workstation sign-in.
 
+## Delegated Administration Verification
+
+A second offboarding test was performed with the delegated helpdesk account `alex.helpdesk`.
+
+Using the helpdesk credential, the operator successfully:
+
+- disabled `nora.larsen`
+- removed `GG-HR`
+- moved the account to `Disabled Users`
+- updated the Description field
+
+Final state:
+
+```text
+Enabled: False
+Description: Offboarded 2026-09-23
+Group memberships:
+- Domain Users
+```
+
+The helpdesk account remained outside Domain Admins, Enterprise Admins, and Administrators.
+
+See [Delegated helpdesk administration](delegated-helpdesk-administration.md).
+
 ## Operational Note
 
 A disabled AD account blocks new authentication, but an already-active session is a separate consideration. In this lab, the user was signed out before the new sign-in test.
@@ -105,5 +115,6 @@ A disabled AD account blocks new authentication, but an already-active session i
 - group membership cleanup
 - OU management
 - AD object movement
+- delegated least-privilege administration
 - post-change verification
 - technical documentation
