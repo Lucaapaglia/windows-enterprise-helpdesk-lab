@@ -9,7 +9,7 @@ The lab currently includes:
 - Windows Server 2025 domain controller (`LAB-DC01`)
 - Active Directory Domain Services and DNS
 - Domain: `corp.lucalab.test`
-- Structured OUs for users, computers, and groups
+- Structured OUs for users, computers, groups, and disabled accounts
 - Department security groups for Finance, HR, Sales, and IT
 - Windows 11 Enterprise workstation (`LAB-PC01`)
 - Domain-joined client authentication
@@ -20,8 +20,9 @@ The lab currently includes:
 - Group Policy Preferences with department drive mapping
 - Item-level targeting based on AD group membership
 - tested PowerShell user-onboarding automation
+- tested PowerShell user-offboarding automation
 - duplicate-account and department validation
-- end-to-end onboarding verification from AD creation through file access
+- end-to-end onboarding and offboarding verification
 - real troubleshooting write-ups based on configuration issues encountered during the lab
 
 ## Lab Topology
@@ -54,6 +55,7 @@ corp.lucalab.test
     │   └── LAB-PC01
     ├── Groups
     └── Users
+        ├── Disabled Users
         ├── Finance
         ├── HR
         ├── IT
@@ -77,22 +79,29 @@ Department drives are mapped with Group Policy Preferences and item-level target
 | `GG-Sales` | `S:` | `\\LAB-DC01\Sales` |
 | Domain users | `P:` | `\\LAB-DC01\Public` |
 
-## PowerShell Onboarding
+## PowerShell Automation
 
 [`New-LabUser.ps1`](scripts/New-LabUser.ps1) automates:
 
 - username and UPN generation
 - supported-department validation
-- OU validation
-- department-group validation
+- OU and department-group validation
 - duplicate-account detection
 - AD user creation
 - first-logon password change
 - automatic `GG-Department` assignment
 
-The workflow was tested end-to-end with a Finance account. The new user received the correct user GPOs, `F:` and `P:` drive mappings, write access to Finance, and an access-denied result against Sales.
+[`Disable-LabUser.ps1`](scripts/Disable-LabUser.ps1) automates:
 
-See [User onboarding automation](docs/user-onboarding.md).
+- account lookup
+- account disablement
+- removal of explicit group memberships
+- movement to the `Disabled Users` OU
+- offboarding-date documentation
+
+The onboarding workflow was tested end-to-end with a Finance user. The account received the correct GPOs and drive mappings, could write to Finance, and was denied Sales access.
+
+The same test account was then offboarded. It was disabled, removed from `GG-Finance`, moved to `Disabled Users`, and a fresh workstation sign-in was rejected as expected.
 
 ## Documentation
 
@@ -103,6 +112,7 @@ See [User onboarding automation](docs/user-onboarding.md).
 - [File sharing and permissions](docs/file-sharing-and-permissions.md)
 - [Group Policy configuration](docs/group-policy.md)
 - [User onboarding automation](docs/user-onboarding.md)
+- [User offboarding automation](docs/user-offboarding.md)
 
 ## Troubleshooting Tickets
 
@@ -127,6 +137,7 @@ These tickets document real configuration issues encountered during the project 
 - item-level targeting
 - RSOP and `gpresult`
 - PowerShell AD automation
+- user lifecycle management
 - input validation and duplicate checks
 - Windows Security Event Log troubleshooting
 - technical documentation
@@ -136,8 +147,8 @@ These tickets document real configuration issues encountered during the project 
 
 Planned additions include:
 
-- employee offboarding automation
 - delegated helpdesk permissions / least-privilege administration
+- improved script safety and `-WhatIf` support
 - additional DNS and network troubleshooting scenarios
 - final repository polish and network diagram
 
