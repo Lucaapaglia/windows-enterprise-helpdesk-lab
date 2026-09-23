@@ -23,7 +23,7 @@ corp.lucalab.test
 
 ## GPO Design
 
-Three GPOs are used:
+Three GPOs are used.
 
 ### GPO-Workstation-Baseline
 
@@ -50,7 +50,13 @@ Computer Configuration
 → Enabled
 ```
 
-The GPO is configured as computer-side only.
+Because this is a computer-only GPO, its final status is:
+
+```text
+UserSettingsDisabled
+```
+
+This means Computer Configuration remains enabled while the unused User Configuration half is disabled.
 
 ### GPO-User-Baseline
 
@@ -78,7 +84,7 @@ User Configuration
 - Password protect the screen saver: Enabled
 - Screen saver timeout: 900 seconds
 
-The GPO is configured with user settings enabled and computer settings disabled.
+Because this is a user-only GPO, Computer Configuration is disabled while User Configuration remains enabled.
 
 ### GPO-Department-Drive-Mapping
 
@@ -105,7 +111,7 @@ The department mappings use Group Policy Preferences with item-level targeting b
 
 ## Example: Finance User
 
-A Finance user such as Emma Jensen is a member of:
+A Finance user is a member of:
 
 ```text
 GG-Finance
@@ -119,6 +125,8 @@ P: → \\LAB-DC01\Public
 ```
 
 The user does not receive the HR or Sales mappings.
+
+The onboarding workflow was verified with the test user `clara.andersen`.
 
 ## Verification
 
@@ -143,10 +151,11 @@ Computer-side policy processing is checked from an elevated shell:
 gpresult /scope computer /r
 ```
 
-Expected computer GPO:
+Verified applied computer GPOs:
 
 ```text
 GPO-Workstation-Baseline
+Default Domain Policy
 ```
 
 The screen-saver policy can also be verified in the current user's registry:
@@ -165,21 +174,23 @@ ScreenSaveTimeOut   = 900
 
 ## Troubleshooting Lessons
 
-Two real configuration issues were encountered while implementing Group Policy:
+Three Group Policy configuration problems were encountered and resolved during the lab:
 
-1. The `Copenhagen` OU had originally been created beneath the built-in `Domain Controllers` OU. This caused `LAB-PC01` to inherit Domain Controller security policy and prevented a normal domain user from logging on interactively.
-2. The user GPOs were linked correctly but their user side was disabled through GPO Status. `gpresult` therefore showed no applied user GPOs until User Configuration was re-enabled.
+1. The `Copenhagen` OU was originally below the built-in `Domain Controllers` OU. A workstation placed below it inherited Domain Controller-oriented policy and normal interactive logon failed.
+2. The user GPOs were linked correctly but User Configuration was disabled through GPO Status. `gpresult` showed no applied user GPOs until the status was corrected.
+3. `GPO-Workstation-Baseline` was linked correctly but Computer Configuration was disabled. Before correction, computer RSOP showed only `Default Domain Policy`. After changing the status to `UserSettingsDisabled`, RSOP showed both the workstation baseline and Default Domain Policy.
 
-Both incidents are documented separately in the `tickets/` directory.
+The related incidents are documented in the `tickets/` directory.
 
 ## Skills Demonstrated
 
 - Group Policy Management
 - GPO linking and inheritance
-- User vs. computer policy scope
+- GPO Status
+- user vs. computer policy scope
 - Group Policy Preferences
-- Item-level targeting
-- Automatic network drive mapping
+- item-level targeting
+- automatic network drive mapping
 - RSOP / `gpresult`
 - Windows security policy troubleshooting
 - Active Directory OU design

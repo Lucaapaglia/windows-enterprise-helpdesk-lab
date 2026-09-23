@@ -19,8 +19,10 @@ The lab currently includes:
 - User and computer Group Policy
 - Group Policy Preferences with department drive mapping
 - Item-level targeting based on AD group membership
-- Initial PowerShell user-provisioning script
-- Real troubleshooting write-ups based on configuration issues encountered during the lab
+- tested PowerShell user-onboarding automation
+- duplicate-account and department validation
+- end-to-end onboarding verification from AD creation through file access
+- real troubleshooting write-ups based on configuration issues encountered during the lab
 
 ## Lab Topology
 
@@ -75,6 +77,23 @@ Department drives are mapped with Group Policy Preferences and item-level target
 | `GG-Sales` | `S:` | `\\LAB-DC01\Sales` |
 | Domain users | `P:` | `\\LAB-DC01\Public` |
 
+## PowerShell Onboarding
+
+[`New-LabUser.ps1`](scripts/New-LabUser.ps1) automates:
+
+- username and UPN generation
+- supported-department validation
+- OU validation
+- department-group validation
+- duplicate-account detection
+- AD user creation
+- first-logon password change
+- automatic `GG-Department` assignment
+
+The workflow was tested end-to-end with a Finance account. The new user received the correct user GPOs, `F:` and `P:` drive mappings, write access to Finance, and an access-denied result against Sales.
+
+See [User onboarding automation](docs/user-onboarding.md).
+
 ## Documentation
 
 - [Lab architecture](docs/architecture.md)
@@ -83,21 +102,16 @@ Department drives are mapped with Group Policy Preferences and item-level target
 - [Windows workstation domain join](docs/workstation-domain-join.md)
 - [File sharing and permissions](docs/file-sharing-and-permissions.md)
 - [Group Policy configuration](docs/group-policy.md)
+- [User onboarding automation](docs/user-onboarding.md)
 
 ## Troubleshooting Tickets
 
+- [Ticket 001 — Finance share access](tickets/001-finance-share-access.md)
 - [Ticket 002 — Workstation inherited Domain Controller policy](tickets/002-workstation-inherited-domain-controller-policy.md)
 - [Ticket 003 — User Group Policies not applying](tickets/003-user-gpo-not-applying.md)
+- [Ticket 004 — Workstation GPO computer settings disabled](tickets/004-workstation-gpo-computer-settings-disabled.md)
 
 These tickets document real configuration issues encountered during the project and the investigation used to identify their root causes.
-
-## PowerShell
-
-Current automation:
-
-- [`New-LabUser.ps1`](scripts/New-LabUser.ps1) — creates a domain user in the appropriate departmental OU.
-
-The next automation stage will expand this into a more complete onboarding workflow with department validation, duplicate detection, automatic group assignment, and a corresponding offboarding script.
 
 ## Skills Demonstrated
 
@@ -110,21 +124,21 @@ The next automation stage will expand this into a more complete onboarding workf
 - AGDLP access-control design
 - Group Policy Management
 - Group Policy Preferences
-- Item-level targeting
+- item-level targeting
 - RSOP and `gpresult`
+- PowerShell AD automation
+- input validation and duplicate checks
 - Windows Security Event Log troubleshooting
-- PowerShell administration
-- Technical documentation
-- Root-cause analysis
+- technical documentation
+- root-cause analysis
 
 ## Next Stages
 
 Planned additions include:
 
-- improved PowerShell onboarding automation
 - employee offboarding automation
-- additional helpdesk incident write-ups
-- DNS and network troubleshooting scenarios
+- delegated helpdesk permissions / least-privilege administration
+- additional DNS and network troubleshooting scenarios
 - final repository polish and network diagram
 
 ## Purpose
