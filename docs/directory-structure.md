@@ -1,6 +1,6 @@
 # Active Directory Structure
 
-The lab uses an OU structure designed to separate users, computers, and security groups for easier administration, Group Policy scoping, and account lifecycle management.
+The lab uses an OU structure designed to separate users, computers, and security groups for easier administration, Group Policy scoping, account lifecycle management, and delegated support administration.
 
 ## Organizational Units
 
@@ -32,14 +32,18 @@ The Disabled Users OU is protected from accidental deletion.
 
 ## Security Groups
 
-The department global security groups are:
+Department membership is represented by:
 
 - `GG-Finance`
 - `GG-HR`
 - `GG-Sales`
 - `GG-IT`
 
-These global groups represent department membership and provide a consistent way to assign access to shared resources and policies.
+Delegated helpdesk administration uses:
+
+- `GG-Helpdesk-Admins`
+
+The helpdesk group is used for scoped user-management and department-group administration rather than broad Domain Admin membership.
 
 Resource-access groups such as `DL-Finance-RW` are used as part of the AGDLP-style permissions model documented in the file-sharing section.
 
@@ -54,7 +58,7 @@ CN=Emma Jensen,OU=Finance,OU=Users,OU=Copenhagen,DC=corp,DC=lucalab,DC=test
 Offboarded user:
 
 ```text
-CN=Clara Andersen,OU=Disabled Users,OU=Users,OU=Copenhagen,DC=corp,DC=lucalab,DC=test
+CN=Nora Larsen,OU=Disabled Users,OU=Users,OU=Copenhagen,DC=corp,DC=lucalab,DC=test
 ```
 
-This structure supports Group Policy scoping, group-based file permissions, onboarding/offboarding automation, and future delegated helpdesk administration.
+This structure supports Group Policy scoping, group-based file permissions, onboarding/offboarding automation, and delegated least-privilege helpdesk administration.
