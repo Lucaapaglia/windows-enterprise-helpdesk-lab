@@ -127,37 +127,21 @@ Get-ChildItem \\LAB-DC01\Sales
 
 This confirms that onboarding integrates correctly with the existing AD group, GPO, SMB, and NTFS design.
 
-## End-to-End Flow
+## Delegated Administration Verification
+
+A separate least-privilege test was performed with:
 
 ```text
-New-LabUser.ps1
-       |
-       v
-AD user in Finance OU
-       |
-       v
-GG-Finance
-       |
-       v
-Domain authentication
-       |
-       v
-User Group Policy
-       |
-       v
-F: Finance + P: Public
-       |
-       v
-SMB / NTFS authorization
+CORP\alex.helpdesk
 ```
 
-## Administrative Permissions
+The account was a member of `GG-Helpdesk-Admins` but not Domain Admins.
 
-The script must be run by an account that has permission to create users in the target OU and modify the department security group.
+Using explicitly supplied helpdesk credentials, the operator successfully created `nora.larsen` in the HR OU and added the account to `GG-HR`.
 
-During testing, an insufficiently privileged account was able to create the user but failed during group assignment. Running the workflow with appropriate administrative permissions completed the onboarding successfully.
+This verifies that routine onboarding can be completed through delegated AD permissions rather than broad domain-administrator access.
 
-A later lab stage can replace broad administrative use with delegated helpdesk permissions.
+See [Delegated helpdesk administration](delegated-helpdesk-administration.md).
 
 ## Skills Demonstrated
 
@@ -170,4 +154,5 @@ A later lab stage can replace broad administrative use with delegated helpdesk p
 - Group Policy verification
 - network drive mapping
 - SMB and NTFS authorization testing
+- least-privilege administration
 - end-to-end troubleshooting
