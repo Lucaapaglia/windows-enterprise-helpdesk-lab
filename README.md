@@ -25,6 +25,7 @@ The lab currently includes:
 - `-WhatIf` and confirmation-based safety controls
 - protected-account checks during offboarding
 - end-to-end lifecycle verification without Domain Admin
+- DNS/network fault-injection and recovery testing
 - real troubleshooting write-ups based on issues encountered during the lab
 
 ## Lab Topology
@@ -116,6 +117,23 @@ The test operator `alex.helpdesk` remained outside Domain Admins, Enterprise Adm
 
 This demonstrates a more realistic support model than using broad domain-administrator access for routine user lifecycle tasks.
 
+## DNS and Network Troubleshooting
+
+A controlled DNS failure was introduced on `LAB-PC01` by replacing the correct DNS server `10.10.10.10` with `10.10.10.99`.
+
+During the broken state:
+
+- ICMP to `10.10.10.10` still succeeded
+- SMB on TCP 445 worked by IP
+- `Resolve-DnsName` for the domain controller timed out
+- SMB by FQDN failed
+- `gpupdate /force` failed with name-resolution errors
+- `nltest /dsgetdc` still returned the DC, consistent with cached locator information
+
+After restoring DNS to `10.10.10.10` and flushing the resolver cache, name resolution, Group Policy, and the computer secure channel all verified successfully.
+
+See [DNS and network troubleshooting](docs/dns-network-troubleshooting.md).
+
 ## Documentation
 
 - [Lab architecture](docs/architecture.md)
@@ -128,6 +146,7 @@ This demonstrates a more realistic support model than using broad domain-adminis
 - [User offboarding automation](docs/user-offboarding.md)
 - [Delegated helpdesk administration](docs/delegated-helpdesk-administration.md)
 - [PowerShell automation safety](docs/powershell-automation-safety.md)
+- [DNS and network troubleshooting](docs/dns-network-troubleshooting.md)
 
 ## Troubleshooting Tickets
 
@@ -135,6 +154,7 @@ This demonstrates a more realistic support model than using broad domain-adminis
 - [Ticket 002 — Workstation inherited Domain Controller policy](tickets/002-workstation-inherited-domain-controller-policy.md)
 - [Ticket 003 — User Group Policies not applying](tickets/003-user-gpo-not-applying.md)
 - [Ticket 004 — Workstation GPO computer settings disabled](tickets/004-workstation-gpo-computer-settings-disabled.md)
+- [Ticket 005 — Incorrect DNS configuration breaks domain services](tickets/005-incorrect-dns-breaks-domain-services.md)
 
 ## Skills Demonstrated
 
@@ -154,16 +174,15 @@ This demonstrates a more realistic support model than using broad domain-adminis
 - `SupportsShouldProcess`, `-WhatIf`, and confirmations
 - credential handling and explicit server targeting
 - protected-account safeguards
+- DNS fault isolation with `Resolve-DnsName`, `Test-Connection`, and `Test-NetConnection`
+- secure-channel verification
 - Windows Security Event Log troubleshooting
 - technical documentation
 - root-cause analysis
 
-## Next Stages
+## Next Stage
 
-Planned additions include:
-
-- one focused DNS/network troubleshooting scenario
-- final repository polish and network diagram
+The technical lab is now feature-complete for its intended portfolio scope. Remaining work is final repository polish, stronger screenshots/evidence, and a clean network diagram.
 
 ## Purpose
 
