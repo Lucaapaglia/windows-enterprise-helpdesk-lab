@@ -16,14 +16,16 @@ The lab currently includes:
 - Static addressing on an isolated VirtualBox network
 - SMB department shares with NTFS permissions
 - AGDLP-style group-based resource access
-- User and computer Group Policy
+- user and computer Group Policy
 - Group Policy Preferences with department drive mapping
-- Item-level targeting based on AD group membership
-- tested PowerShell user-onboarding automation
-- tested PowerShell user-offboarding automation
+- item-level targeting based on AD group membership
+- PowerShell onboarding and offboarding automation
 - delegated helpdesk administration with scoped AD permissions
-- end-to-end onboarding and offboarding verification without Domain Admin
-- real troubleshooting write-ups based on configuration issues encountered during the lab
+- explicit credential and domain-controller targeting
+- `-WhatIf` and confirmation-based safety controls
+- protected-account checks during offboarding
+- end-to-end lifecycle verification without Domain Admin
+- real troubleshooting write-ups based on issues encountered during the lab
 
 ## Lab Topology
 
@@ -81,7 +83,7 @@ Department drives are mapped with Group Policy Preferences and item-level target
 
 ## PowerShell Automation
 
-[`New-LabUser.ps1`](scripts/New-LabUser.ps1) automates:
+[`New-LabUser.ps1`](scripts/New-LabUser.ps1) automates employee provisioning:
 
 - username and UPN generation
 - supported-department validation
@@ -89,34 +91,30 @@ Department drives are mapped with Group Policy Preferences and item-level target
 - duplicate-account detection
 - AD user creation
 - first-logon password change
-- automatic `GG-Department` assignment
+- automatic department-group assignment
+- final account and membership verification
 
-[`Disable-LabUser.ps1`](scripts/Disable-LabUser.ps1) automates:
+[`Disable-LabUser.ps1`](scripts/Disable-LabUser.ps1) automates employee offboarding:
 
-- account lookup
+- account and group inspection
+- privileged-account protection
 - account disablement
-- removal of explicit group memberships
+- explicit group-membership removal
 - movement to the `Disabled Users` OU
 - offboarding-date documentation
+- final state verification
 
-The onboarding workflow was tested end-to-end with a Finance user. The account received the correct GPOs and drive mappings, could write to Finance, and was denied Sales access.
+Both scripts support delegated `-Credential`, explicit `-Server`, and `-WhatIf` execution.
 
-The same test account was then offboarded. It was disabled, removed from `GG-Finance`, moved to `Disabled Users`, and a fresh workstation sign-in was rejected as expected.
+A full Sales lifecycle was tested using the delegated `alex.helpdesk` credential. The onboarding preview made no changes; the real run created `maja.nielsen` in Sales and assigned `GG-Sales`. The offboarding preview also made no changes; the confirmed real run disabled the account, removed `GG-Sales`, moved it to `Disabled Users`, and recorded the offboarding date.
 
 ## Delegated Helpdesk Administration
 
 A dedicated `GG-Helpdesk-Admins` group is used for scoped user-management permissions.
 
-The test operator `alex.helpdesk` remained outside Domain Admins, Enterprise Admins, and Administrators while successfully:
+The test operator `alex.helpdesk` remained outside Domain Admins, Enterprise Admins, and Administrators while successfully completing onboarding and offboarding work with delegated permissions.
 
-- creating `nora.larsen` in the HR OU
-- adding the account to `GG-HR`
-- disabling the account
-- removing `GG-HR`
-- moving the account to `Disabled Users`
-- updating the offboarding description
-
-This verifies that routine user lifecycle work can be completed with delegated permissions instead of broad domain-administrator access.
+This demonstrates a more realistic support model than using broad domain-administrator access for routine user lifecycle tasks.
 
 ## Documentation
 
@@ -129,6 +127,7 @@ This verifies that routine user lifecycle work can be completed with delegated p
 - [User onboarding automation](docs/user-onboarding.md)
 - [User offboarding automation](docs/user-offboarding.md)
 - [Delegated helpdesk administration](docs/delegated-helpdesk-administration.md)
+- [PowerShell automation safety](docs/powershell-automation-safety.md)
 
 ## Troubleshooting Tickets
 
@@ -136,8 +135,6 @@ This verifies that routine user lifecycle work can be completed with delegated p
 - [Ticket 002 — Workstation inherited Domain Controller policy](tickets/002-workstation-inherited-domain-controller-policy.md)
 - [Ticket 003 — User Group Policies not applying](tickets/003-user-gpo-not-applying.md)
 - [Ticket 004 — Workstation GPO computer settings disabled](tickets/004-workstation-gpo-computer-settings-disabled.md)
-
-These tickets document real configuration issues encountered during the project and the investigation used to identify their root causes.
 
 ## Skills Demonstrated
 
@@ -153,9 +150,10 @@ These tickets document real configuration issues encountered during the project 
 - item-level targeting
 - RSOP and `gpresult`
 - PowerShell AD automation
-- user lifecycle management
 - delegated least-privilege administration
-- input validation and duplicate checks
+- `SupportsShouldProcess`, `-WhatIf`, and confirmations
+- credential handling and explicit server targeting
+- protected-account safeguards
 - Windows Security Event Log troubleshooting
 - technical documentation
 - root-cause analysis
@@ -164,8 +162,7 @@ These tickets document real configuration issues encountered during the project 
 
 Planned additions include:
 
-- improved script safety and `-WhatIf` support
-- additional DNS and network troubleshooting scenarios
+- one focused DNS/network troubleshooting scenario
 - final repository polish and network diagram
 
 ## Purpose

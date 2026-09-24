@@ -38,21 +38,13 @@ Administrators
 
 Permissions were delegated in Active Directory Users and Computers.
 
-### User Administration
-
-Delegation was applied to:
+The helpdesk group received scoped user-account management rights below:
 
 ```text
 OU=Users,OU=Copenhagen,DC=corp,DC=lucalab,DC=test
 ```
 
-The helpdesk group received the ability to manage user accounts within the user hierarchy, including the departmental OUs and Disabled Users OU.
-
-### Department Group Membership
-
-Delegation was also applied to the Groups OU so the helpdesk operator could modify department group membership.
-
-The relevant department groups are:
+Delegation was also applied to the Groups OU so the operator could modify department membership for:
 
 ```text
 GG-Finance
@@ -61,80 +53,63 @@ GG-Sales
 GG-IT
 ```
 
-## Credential Test
+## Manual Delegation Verification
 
-The delegated account was used explicitly from an administrative PowerShell session:
+Using an explicit credential:
 
 ```powershell
 $cred = Get-Credential CORP\alex.helpdesk
 ```
 
-A basic directory read confirmed that the credentials were valid:
+the helpdesk operator successfully created `nora.larsen` in the HR OU and added the user to `GG-HR`.
 
-```powershell
-Get-ADUser emma.jensen `
-  -Credential $cred `
-  -Server LAB-DC01.corp.lucalab.test
-```
+The same credential then successfully:
 
-## Onboarding Test
+- disabled `nora.larsen`
+- removed `GG-HR`
+- moved the user to `Disabled Users`
+- updated the offboarding description
 
-Using only the delegated helpdesk credentials, a new HR user was created:
+The account remained outside privileged domain-administration groups throughout the test.
 
-```text
-nora.larsen
-```
+## Scripted Delegation Verification
 
-The account was placed in:
+The hardened lifecycle scripts were then tested with the same delegated credential and an explicit server:
 
 ```text
-OU=HR,OU=Users,OU=Copenhagen,DC=corp,DC=lucalab,DC=test
+LAB-DC01.corp.lucalab.test
 ```
 
-The delegated operator then added the user to:
+A Sales lifecycle was tested with `maja.nielsen`.
 
-```text
-GG-HR
-```
+Onboarding `-WhatIf` previewed creation and group assignment without changing AD.
 
-Verification showed:
+The real onboarding run verified:
 
 ```text
 Enabled: True
-Department: HR
-
-Group memberships:
-- Domain Users
-- GG-HR
+Department: Sales
+Groups: Domain Users, GG-Sales
 ```
 
-## Offboarding Test
+Offboarding `-WhatIf` previewed account disablement, group removal, movement, and description update without changing the account.
 
-The same delegated credentials were then used to offboard the test account.
-
-The helpdesk operator successfully:
-
-1. disabled `nora.larsen`
-2. removed `GG-HR`
-3. moved the account to the Disabled Users OU
-4. updated the Description field with the offboarding date
-
-Final verification:
+The confirmed real offboarding run verified:
 
 ```text
 Enabled: False
-Description: Offboarded 2026-09-23
+Description: Offboarded 2026-09-24
 OU: Disabled Users
-
-Group memberships:
-- Domain Users
+Groups: Domain Users
 ```
 
 ## Security Result
 
-The full create → group assignment → disable → group removal → move workflow succeeded with the delegated helpdesk account while the operator remained outside privileged domain administration groups.
+The lab now demonstrates both manual and scripted lifecycle administration under delegated permissions.
 
-This demonstrates a more realistic support model than performing routine user lifecycle tasks with Domain Admin credentials.
+Routine user management does not require Domain Admin membership, and the scripts support explicit credentials, explicit domain-controller targeting, preview mode, confirmation controls, and post-change verification.
+
+See [PowerShell automation safety](powershell-automation-safety.md).
 
 ## Skills Demonstrated
 
@@ -143,5 +118,7 @@ This demonstrates a more realistic support model than performing routine user li
 - scoped OU permissions
 - delegated group membership management
 - PowerShell credential handling
-- user lifecycle administration
+- explicit domain-controller targeting
+- `SupportsShouldProcess` and `-WhatIf`
+- lifecycle administration
 - verification of privilege boundaries
