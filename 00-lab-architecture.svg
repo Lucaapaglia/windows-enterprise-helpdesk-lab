@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="980" viewBox="0 0 1600 980">
+<style>
+  .bg{fill:#f8fafc}.card{fill:#fff;stroke:#cbd5e1;stroke-width:2}.dc{fill:#eff6ff;stroke:#2563eb}.pc{fill:#f0fdf4;stroke:#16a34a}.access{fill:#fff7ed;stroke:#ea580c}.help{fill:#f5f3ff;stroke:#7c3aed}
+  .title{font:700 42px Arial,sans-serif;fill:#0f172a}.sub{font:22px Arial,sans-serif;fill:#475569}.h{font:700 27px Arial,sans-serif;fill:#0f172a}.t{font:19px Arial,sans-serif;fill:#1e293b}.small{font:17px Arial,sans-serif;fill:#334155}.mono{font:17px Consolas,monospace;fill:#1e293b}.label{font:700 17px Arial,sans-serif;fill:#1e3a8a}
+</style>
+<rect class="bg" width="1600" height="980"/>
+<text x="70" y="62" class="title">Windows Enterprise Helpdesk Lab</text>
+<text x="70" y="98" class="sub">Northstar Solutions ApS · corp.lucalab.test · VirtualBox LAB-NET 10.10.10.0/24</text>
+
+<rect x="70" y="145" width="625" height="310" rx="20" class="card dc"/>
+<text x="100" y="192" class="h">LAB-DC01 · Windows Server 2025</text>
+<text x="100" y="226" class="t">10.10.10.10 · Domain Controller / DNS / File Server</text>
+<text x="105" y="275" class="t">• Active Directory Domain Services</text>
+<text x="105" y="310" class="t">• DNS for corp.lucalab.test</text>
+<text x="105" y="345" class="t">• Group Policy Management</text>
+<text x="105" y="380" class="t">• SMB shares: Finance · HR · Sales · Public</text>
+<text x="105" y="415" class="t">• PowerShell AD administration and delegation</text>
+
+<rect x="905" y="145" width="625" height="310" rx="20" class="card pc"/>
+<text x="935" y="192" class="h">LAB-PC01 · Windows 11 Enterprise</text>
+<text x="935" y="226" class="t">10.10.10.20 · DNS 10.10.10.10 · Domain joined</text>
+<text x="940" y="275" class="t">• Receives workstation and user GPOs</text>
+<text x="940" y="310" class="t">• Department drive mappings through GPP</text>
+<text x="940" y="345" class="t">• Validates SMB / NTFS access</text>
+<text x="940" y="380" class="t">• Runs user lifecycle and helpdesk tests</text>
+<text x="940" y="415" class="t">• DNS / Group Policy troubleshooting client</text>
+
+<line x1="695" y1="300" x2="905" y2="300" stroke="#1e3a8a" stroke-width="5"/>
+<polygon points="715,288 695,300 715,312" fill="#1e3a8a"/>
+<polygon points="885,288 905,300 885,312" fill="#1e3a8a"/>
+<rect x="754" y="265" width="92" height="34" rx="10" fill="#fff" stroke="#94a3b8"/>
+<text x="770" y="288" class="label">LAB-NET</text>
+
+<rect x="70" y="510" width="455" height="350" rx="18" class="card"/>
+<text x="96" y="552" class="h">Active Directory structure</text>
+<text x="100" y="594" class="mono">corp.lucalab.test</text>
+<text x="100" y="624" class="mono">└─ Copenhagen</text>
+<text x="100" y="654" class="mono">   ├─ Users</text>
+<text x="100" y="684" class="mono">   │  ├─ Finance · HR · IT · Sales</text>
+<text x="100" y="714" class="mono">   │  └─ Disabled Users</text>
+<text x="100" y="744" class="mono">   ├─ Computers → LAB-PC01</text>
+<text x="100" y="774" class="mono">   └─ Groups</text>
+<text x="100" y="804" class="small">GG-Finance / GG-HR / GG-Sales / GG-IT</text>
+<text x="100" y="832" class="small">GG-Helpdesk-Admins + DL-Department-RW</text>
+
+<rect x="570" y="510" width="455" height="350" rx="18" class="card access"/>
+<text x="596" y="552" class="h">Access model and Group Policy</text>
+<text x="600" y="598" class="t">AGDLP-style resource access:</text>
+<text x="600" y="630" class="small">Account → Global Group → Domain Local Group → Permission</text>
+<text x="600" y="678" class="t">Department drive mappings:</text>
+<text x="600" y="712" class="mono">F: → \\LAB-DC01\Finance</text>
+<text x="600" y="742" class="mono">H: → \\LAB-DC01\HR</text>
+<text x="600" y="772" class="mono">S: → \\LAB-DC01\Sales</text>
+<text x="600" y="802" class="mono">P: → \\LAB-DC01\Public</text>
+<text x="600" y="838" class="small">GPP item-level targeting uses AD group membership.</text>
+
+<rect x="1070" y="510" width="460" height="350" rx="18" class="card help"/>
+<text x="1096" y="552" class="h">Delegated helpdesk + automation</text>
+<text x="1100" y="598" class="t">alex.helpdesk → GG-Helpdesk-Admins</text>
+<text x="1100" y="632" class="small">No Domain Admin membership.</text>
+<text x="1100" y="682" class="t">New-LabUser.ps1</text>
+<text x="1100" y="712" class="small">Creates users, validates OU/group, assigns department.</text>
+<text x="1100" y="752" class="t">Disable-LabUser.ps1</text>
+<text x="1100" y="782" class="small">Disables, removes groups, moves to Disabled Users.</text>
+<text x="1100" y="822" class="small">Both support -Credential, -Server and -WhatIf.</text>
+
+<rect x="70" y="895" width="1460" height="52" rx="14" fill="#fff1f2" stroke="#fda4af"/>
+<text x="95" y="928" class="small">Troubleshooting: wrong client DNS (10.10.10.99) left IP connectivity working but broke name resolution and Group Policy; restoring 10.10.10.10 recovered DNS, GPO and the secure channel.</text>
+</svg>
