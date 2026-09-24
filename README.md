@@ -85,7 +85,7 @@ After restoring DNS to `10.10.10.10` and clearing the resolver cache, name resol
 </tr>
 <tr>
 <td><img src="screenshots/03-security-group-members.png"><br><b>Finance security-group membership</b></td>
-<td><img src="screenshots/04-finance-ntfs-permissions.png"><br><b>Finance NTFS permissions</b></td>
+<td><img src="screenshots/04-finance-ntfs-permissions.svg"><br><b>Finance NTFS permissions</b></td>
 </tr>
 </table>
 
