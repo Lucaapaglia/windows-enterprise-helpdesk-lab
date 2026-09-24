@@ -10,15 +10,9 @@ The workflow is implemented in:
 scripts/New-LabUser.ps1
 ```
 
-## What the Script Does
+## Capabilities
 
-The script accepts:
-
-- first name
-- last name
-- department
-
-Supported departments are restricted with PowerShell `ValidateSet`:
+The script accepts first name, last name, and department, with supported departments restricted to:
 
 ```text
 Finance
@@ -27,121 +21,81 @@ Sales
 IT
 ```
 
+It also supports:
+
+```text
+-Credential
+-Server
+-WhatIf
+```
+
 For a valid employee, the script:
 
-1. builds a username in `firstname.lastname` format
-2. generates the UPN `username@corp.lucalab.test`
-3. selects the matching departmental OU
-4. verifies that the OU exists
-5. verifies that the matching `GG-Department` security group exists
+1. builds a `firstname.lastname` username
+2. generates the domain UPN
+3. validates the target department
+4. verifies the target OU
+5. verifies the matching department group
 6. checks for duplicate usernames
-7. creates the enabled AD user
+7. creates the enabled AD account
 8. requires a password change at first logon
-9. adds the user to the correct department security group
+9. assigns the matching `GG-Department` group
+10. verifies the final account state and group memberships
 
-The script reports user creation and group assignment as separate steps so that a partial onboarding failure is easier to identify.
+## Functional Validation
 
-## Example
+The original end-to-end Finance test used `clara.andersen`.
+
+The account successfully:
+
+- authenticated to `LAB-PC01`
+- received `GPO-User-Baseline`
+- received `GPO-Department-Drive-Mapping`
+- received `F:` and `P:`
+- created, read, and deleted a file on Finance
+- received Access Denied against the Sales share
+
+The script also rejected:
+
+- a duplicate `clara.andersen` account
+- an unsupported `Marketing` department
+
+## Delegated and Safe Execution
+
+The hardened script was tested with the delegated helpdesk credential:
+
+```powershell
+$cred = Get-Credential CORP\alex.helpdesk
+```
+
+A Sales user was previewed first:
 
 ```powershell
 .\New-LabUser.ps1 `
-  -FirstName "Clara" `
-  -LastName "Andersen" `
-  -Department "Finance"
+  -FirstName "Maja" `
+  -LastName "Nielsen" `
+  -Department "Sales" `
+  -Credential $cred `
+  -Server "LAB-DC01.corp.lucalab.test" `
+  -WhatIf
 ```
 
-The expected identity is:
+The preview showed the intended account creation and group assignment without creating anything.
+
+The real run then created `maja.nielsen` and verified:
 
 ```text
-Username: clara.andersen
-UPN: clara.andersen@corp.lucalab.test
-OU: OU=Finance,OU=Users,OU=Copenhagen,DC=corp,DC=lucalab,DC=test
-Group: GG-Finance
+Enabled: True
+Department: Sales
+Groups: Domain Users, GG-Sales
 ```
 
-## Validation Tests
+This confirms that the production-style onboarding path works with delegated permissions and explicit domain-controller targeting.
 
-### Duplicate account protection
+See also:
 
-The script was run a second time for `clara.andersen`.
-
-The script stopped before creating another account and returned:
-
-```text
-User 'clara.andersen' already exists.
-```
-
-### Department validation
-
-The script was tested with:
-
-```powershell
-.\New-LabUser.ps1 `
-  -FirstName "Test" `
-  -LastName "Person" `
-  -Department "Marketing"
-```
-
-PowerShell rejected the value because `Marketing` is not part of the allowed department set.
-
-No account was created.
-
-## End-to-End Verification
-
-The test employee `CORP\clara.andersen` was created in the Finance OU and became a member of:
-
-```text
-Domain Users
-GG-Finance
-```
-
-The user successfully authenticated to `LAB-PC01`.
-
-User-side RSOP showed:
-
-```text
-GPO-User-Baseline
-GPO-Department-Drive-Mapping
-```
-
-The Finance and Public drives were automatically mapped:
-
-```text
-F: -> \\LAB-DC01\Finance
-P: -> \\LAB-DC01\Public
-```
-
-The user was able to create, read, and remove a test file on the Finance share:
-
-```powershell
-Set-Content F:\clara-test.txt "Finance access test"
-Get-Content F:\clara-test.txt
-Remove-Item F:\clara-test.txt
-```
-
-Access to the Sales share was denied:
-
-```powershell
-Get-ChildItem \\LAB-DC01\Sales
-```
-
-This confirms that onboarding integrates correctly with the existing AD group, GPO, SMB, and NTFS design.
-
-## Delegated Administration Verification
-
-A separate least-privilege test was performed with:
-
-```text
-CORP\alex.helpdesk
-```
-
-The account was a member of `GG-Helpdesk-Admins` but not Domain Admins.
-
-Using explicitly supplied helpdesk credentials, the operator successfully created `nora.larsen` in the HR OU and added the account to `GG-HR`.
-
-This verifies that routine onboarding can be completed through delegated AD permissions rather than broad domain-administrator access.
-
-See [Delegated helpdesk administration](delegated-helpdesk-administration.md).
+- [Delegated helpdesk administration](delegated-helpdesk-administration.md)
+- [PowerShell automation safety](powershell-automation-safety.md)
 
 ## Skills Demonstrated
 
@@ -152,7 +106,7 @@ See [Delegated helpdesk administration](delegated-helpdesk-administration.md).
 - AD security-group assignment
 - first-logon password change
 - Group Policy verification
-- network drive mapping
 - SMB and NTFS authorization testing
-- least-privilege administration
-- end-to-end troubleshooting
+- `SupportsShouldProcess` and `-WhatIf`
+- delegated credential handling
+- post-change verification
