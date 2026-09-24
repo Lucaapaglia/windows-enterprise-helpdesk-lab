@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="650" viewBox="0 0 1100 650">
+<style>
+.bg{fill:#f4f4f5}.win{fill:#fff;stroke:#a1a1aa;stroke-width:2}.bar{fill:#f8fafc}.h{font:600 24px "Segoe UI",Arial;fill:#111827}.t{font:20px "Segoe UI",Arial;fill:#111827}.s{font:17px "Segoe UI",Arial;fill:#374151}.sel{fill:#0078d4}.white{fill:#fff;font:18px "Segoe UI",Arial}.check{fill:#0078d4}
+</style>
+<rect width="1100" height="650" class="bg"/>
+<rect x="70" y="45" width="960" height="550" rx="6" class="win"/>
+<rect x="70" y="45" width="960" height="48" class="bar"/>
+<text x="92" y="77" class="h">Permissions for Finance</text>
+<text x="92" y="125" class="t">Security</text>
+<text x="92" y="162" class="s">Object name:</text>
+<text x="220" y="162" class="t">C:\CompanyData\Finance</text>
+<text x="92" y="205" class="s">Group or user names:</text>
+<rect x="92" y="222" width="620" height="132" fill="#fff" stroke="#9ca3af"/>
+<text x="112" y="252" class="t">SYSTEM</text>
+<rect x="98" y="264" width="608" height="34" class="sel"/>
+<text x="112" y="288" class="white">DL-Finance-RW (CORP\DL-Finance-RW)</text>
+<text x="112" y="332" class="t">Administrators (CORP\Administrators)</text>
+
+<text x="92" y="398" class="s">Permissions for DL-Finance-RW</text>
+<text x="565" y="398" class="s">Allow</text>
+<text x="655" y="398" class="s">Deny</text>
+<rect x="92" y="414" width="620" height="142" fill="#fff" stroke="#9ca3af"/>
+<text x="112" y="443" class="t">Full control</text>
+<text x="112" y="471" class="t">Modify</text>
+<text x="112" y="499" class="t">Read &amp; execute</text>
+<text x="112" y="527" class="t">List folder contents</text>
+<text x="380" y="527" class="t">Read</text>
+<text x="520" y="527" class="t">Write</text>
+<rect x="575" y="452" width="20" height="20" rx="3" class="check"/><text x="579" y="469" class="white">✓</text>
+<rect x="575" y="480" width="20" height="20" rx="3" class="check"/><text x="579" y="497" class="white">✓</text>
+<rect x="575" y="508" width="20" height="20" rx="3" class="check"/><text x="579" y="525" class="white">✓</text>
+<rect x="575" y="536" width="20" height="20" rx="3" class="check"/><text x="579" y="553" class="white">✓</text>
+<text x="735" y="250" class="h">Verified NTFS access</text>
+<text x="735" y="290" class="t">DL-Finance-RW</text>
+<text x="735" y="325" class="s">Modify</text>
+<text x="735" y="354" class="s">Read &amp; execute</text>
+<text x="735" y="383" class="s">List folder contents</text>
+<text x="735" y="412" class="s">Read</text>
+<text x="735" y="441" class="s">Write</text>
+<text x="735" y="500" class="s">Rendered from the captured</text>
+<text x="735" y="526" class="s">Windows Security-tab evidence.</text>
+</svg>
