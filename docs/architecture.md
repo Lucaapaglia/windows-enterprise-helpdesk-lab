@@ -1,64 +1,64 @@
 # Lab Architecture
 
+![Windows Enterprise Helpdesk Lab architecture](../00-lab-architecture.svg)
+
 ## Objective
 
-Build a small Windows enterprise environment to practice and demonstrate entry-level IT support, system administration, networking, Active Directory, PowerShell, and troubleshooting skills.
+Build a small Windows enterprise environment that demonstrates practical helpdesk and junior systems-administration work: identity management, endpoint policy, file access, delegated administration, PowerShell automation, and troubleshooting.
 
-## Environment
+## Core systems
 
-### Host
+| System | Platform | Address | Purpose |
+|---|---|---:|---|
+| `LAB-DC01` | Windows Server 2025 | `10.10.10.10` | AD DS, DNS, Group Policy, SMB shares |
+| `LAB-PC01` | Windows 11 Enterprise | `10.10.10.20` | Domain-joined client and validation workstation |
 
-- Windows 11 Home
-- 16 GB RAM
-- Oracle VirtualBox
+Both systems use the isolated VirtualBox internal network `LAB-NET` (`10.10.10.0/24`). The workstation uses `10.10.10.10` as its DNS server.
 
-### LAB-DC01
+## Identity and access
 
-- Windows Server 2025
-- Active Directory Domain Services
-- DNS Server
-- 4 GB RAM
-- 2 vCPU
-- Static IPv4: `10.10.10.10/24`
+The domain is `corp.lucalab.test` (NetBIOS: `CORP`). User accounts are organized below the Copenhagen OU by department, with a separate Disabled Users OU for offboarded accounts.
 
-### LAB-PC01
-
-- Windows 11 Enterprise
-- Domain-joined workstation
-- 4 GB RAM
-- 3 vCPU
-- Static IPv4: `10.10.10.20/24`
-- DNS server: `10.10.10.10`
-
-`LAB-PC01` uses 3 vCPUs because the host environment produced a VirtualBox UEFI black-screen issue when the VM was configured with 2 vCPUs.
-
-## Domain
-
-- DNS domain: `corp.lucalab.test`
-- NetBIOS domain: `CORP`
-- Domain controller: `LAB-DC01`
-
-## Network
-
-The VMs communicate through an isolated VirtualBox internal network named `LAB-NET`.
+Department file access follows an AGDLP-style pattern:
 
 ```text
-Network: 10.10.10.0/24
-
-LAB-DC01
-10.10.10.10
-AD DS + DNS
-      |
-      | LAB-NET
-      |
-LAB-PC01
-10.10.10.20
-Windows 11 Enterprise
+Account
+  ↓
+Global department group
+  ↓
+Domain-local resource group
+  ↓
+SMB / NTFS permission
 ```
 
-| Role | Hostname | IPv4 | DNS |
-|---|---|---:|---:|
-| Domain Controller | `LAB-DC01` | `10.10.10.10` | `10.10.10.10` |
-| Workstation | `LAB-PC01` | `10.10.10.20` | `10.10.10.10` |
+Example:
 
-No default gateway is required for the isolated lab network. The workstation uses the domain controller as its DNS server so it can discover Active Directory services.
+```text
+Emma Jensen
+  ↓
+GG-Finance
+  ↓
+DL-Finance-RW
+  ↓
+\\LAB-DC01\Finance
+```
+
+## Group Policy
+
+Three purpose-specific GPOs are used:
+
+- `GPO-Workstation-Baseline`
+- `GPO-User-Baseline`
+- `GPO-Department-Drive-Mapping`
+
+Drive Maps uses Group Policy Preferences and item-level targeting to map Finance, HR, Sales, and Public shares.
+
+## Delegated administration
+
+`alex.helpdesk` is a normal IT user and a member of `GG-Helpdesk-Admins`, not Domain Admins. Scoped delegation allows routine user lifecycle work without broad domain-administrator rights.
+
+The lifecycle scripts support explicit delegated credentials, domain-controller targeting, `-WhatIf`, confirmation controls, and verification.
+
+## Troubleshooting validation
+
+The workstation was intentionally configured with an incorrect DNS server (`10.10.10.99`). IP connectivity to the server remained available while name resolution and Group Policy failed. Restoring DNS to `10.10.10.10` and clearing the DNS cache restored domain-dependent functionality and a healthy secure channel.
