@@ -2,7 +2,7 @@
 
 ## Objective
 
-Document the tested Active Directory offboarding workflow used in the lab.
+Automate a repeatable Active Directory offboarding workflow that disables an account, removes explicit access groups, moves the account to a dedicated Disabled Users OU, and verifies the final state.
 
 The workflow is implemented in:
 
@@ -10,103 +10,97 @@ The workflow is implemented in:
 scripts/Disable-LabUser.ps1
 ```
 
-## Disabled Users OU
+## Capabilities
 
-The lab includes:
-
-```text
-OU=Disabled Users,OU=Users,OU=Copenhagen,DC=corp,DC=lucalab,DC=test
-```
-
-This OU is protected from accidental deletion.
-
-## Workflow
-
-The script is run with a username:
-
-```powershell
-.\Disable-LabUser.ps1 -Username "clara.andersen"
-```
-
-It performs these tasks:
-
-1. locates the AD user
-2. checks that the Disabled Users OU exists
-3. disables the account
-4. removes explicit group memberships
-5. moves the account to the Disabled Users OU
-6. adds an offboarding date to the Description field
-
-The user's default `Domain Users` membership remains.
-
-## Test Result
-
-The workflow was tested with the Finance user `clara.andersen`.
-
-Before the test, the account was enabled and belonged to:
+The script supports:
 
 ```text
-Domain Users
-GG-Finance
+-Username
+-Credential
+-Server
+-WhatIf
 ```
 
-The script reported:
+It:
 
-```text
-[OK] Account disabled
-[OK] Removed from GG-Finance
-[OK] Account moved
-```
+1. retrieves the target user
+2. inspects current group memberships
+3. refuses protected privileged-group targets
+4. verifies the Disabled Users OU
+5. displays explicit group memberships that will be removed
+6. disables the account
+7. removes explicit non-default memberships
+8. moves the account to `Disabled Users`
+9. records the offboarding date in `Description`
+10. verifies the final account state and remaining groups
 
-Verification showed:
+## Original Functional Test
+
+The original offboarding test used `clara.andersen`.
+
+The resulting state was:
 
 ```text
 Enabled: False
 Description: Offboarded 2026-09-23
 OU: Disabled Users
+Groups: Domain Users
 ```
 
-Only `Domain Users` remained.
+A fresh workstation sign-in was rejected with the expected disabled-account message.
 
-## Sign-in Verification
+## Delegated Administration Test
 
-After signing out of `LAB-PC01`, a new sign-in attempt was made using the disabled account.
+A second manual lifecycle test used the delegated helpdesk account `alex.helpdesk` to offboard `nora.larsen` without Domain Admin membership.
 
-Windows displayed:
+The helpdesk account successfully disabled the user, removed `GG-HR`, moved the account, and updated the Description field.
 
-```text
-Your account has been disabled. Please see your system administrator.
+## Safe Script Test
+
+The hardened script was tested with `maja.nielsen`.
+
+A preview run used:
+
+```powershell
+.\Disable-LabUser.ps1 `
+  -Username "maja.nielsen" `
+  -Credential $cred `
+  -Server "LAB-DC01.corp.lucalab.test" `
+  -WhatIf
 ```
 
-This confirmed the expected disabled-account behavior for a new workstation sign-in.
+The script displayed all planned changes but did not modify the account.
 
-## Delegated Administration Verification
+The real run then required confirmation for each destructive operation and completed successfully.
 
-A second offboarding test was performed with the delegated helpdesk account `alex.helpdesk`.
-
-Using the helpdesk credential, the operator successfully:
-
-- disabled `nora.larsen`
-- removed `GG-HR`
-- moved the account to `Disabled Users`
-- updated the Description field
-
-Final state:
+Final verification:
 
 ```text
 Enabled: False
-Description: Offboarded 2026-09-23
-Group memberships:
-- Domain Users
+Description: Offboarded 2026-09-24
+OU: Disabled Users
+Groups: Domain Users
 ```
 
-The helpdesk account remained outside Domain Admins, Enterprise Admins, and Administrators.
+## Protected Accounts
 
-See [Delegated helpdesk administration](delegated-helpdesk-administration.md).
+The script refuses the generic offboarding path if the target is a member of:
+
+```text
+Domain Admins
+Enterprise Admins
+Schema Admins
+Administrators
+```
 
 ## Operational Note
 
-A disabled AD account blocks new authentication, but an already-active session is a separate consideration. In this lab, the user was signed out before the new sign-in test.
+Disabling an AD account prevents new authentication, but an already-active session is a separate consideration. The lab verifies disabled-account behavior with a fresh sign-in attempt.
+
+See also:
+
+- [Delegated helpdesk administration](delegated-helpdesk-administration.md)
+- [PowerShell automation safety](powershell-automation-safety.md)
 
 ## Skills Demonstrated
 
@@ -116,5 +110,7 @@ A disabled AD account blocks new authentication, but an already-active session i
 - OU management
 - AD object movement
 - delegated least-privilege administration
+- `SupportsShouldProcess`
+- `-WhatIf` and confirmation controls
+- privileged-account safeguards
 - post-change verification
-- technical documentation
