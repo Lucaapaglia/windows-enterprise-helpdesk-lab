@@ -1,189 +1,161 @@
 # Windows Enterprise Helpdesk Lab
 
-Hands-on Windows enterprise helpdesk lab built to demonstrate practical entry-level IT support and systems administration skills using Active Directory, DNS, Windows 11, PowerShell, networking, permissions, Group Policy, least-privilege administration, and structured troubleshooting.
+A hands-on Windows enterprise support lab built in VirtualBox to demonstrate practical helpdesk and junior systems-administration skills: Active Directory, Group Policy, DNS, SMB/NTFS permissions, delegated administration, PowerShell automation, and structured troubleshooting.
 
-## Current Implementation
+**Status:** feature-complete portfolio project  
+**Domain:** `corp.lucalab.test`  
+**Network:** `LAB-NET` — `10.10.10.0/24`
 
-The lab currently includes:
+## Architecture
 
-- Windows Server 2025 domain controller (`LAB-DC01`)
-- Active Directory Domain Services and DNS
-- Domain: `corp.lucalab.test`
-- Structured OUs for users, computers, groups, and disabled accounts
-- Department security groups for Finance, HR, Sales, and IT
-- Windows 11 Enterprise workstation (`LAB-PC01`)
-- Domain-joined client authentication
-- Static addressing on an isolated VirtualBox network
-- SMB department shares with NTFS permissions
-- AGDLP-style group-based resource access
-- user and computer Group Policy
-- Group Policy Preferences with department drive mapping
-- item-level targeting based on AD group membership
-- PowerShell onboarding and offboarding automation
-- delegated helpdesk administration with scoped AD permissions
-- explicit credential and domain-controller targeting
-- `-WhatIf` and confirmation-based safety controls
-- protected-account checks during offboarding
-- end-to-end lifecycle verification without Domain Admin
-- DNS/network fault-injection and recovery testing
-- real troubleshooting write-ups based on issues encountered during the lab
+![Windows Enterprise Helpdesk Lab architecture](00-lab-architecture.svg)
 
-## Lab Topology
+| System | Platform | Address | Role |
+|---|---|---:|---|
+| `LAB-DC01` | Windows Server 2025 | `10.10.10.10` | AD DS, DNS, Group Policy, SMB |
+| `LAB-PC01` | Windows 11 Enterprise | `10.10.10.20` | Domain-joined client and troubleshooting workstation |
+
+## What this lab demonstrates
+
+### Active Directory and access control
+
+The domain uses a structured Copenhagen OU hierarchy for departmental users, workstations, groups, and disabled accounts. Department access follows an AGDLP-style model:
 
 ```text
-VirtualBox Internal Network: LAB-NET
-Network: 10.10.10.0/24
-
-LAB-DC01
-Windows Server 2025
-10.10.10.10
-AD DS + DNS + SMB
-      |
-      | LAB-NET
-      |
-LAB-PC01
-Windows 11 Enterprise
-10.10.10.20
-Domain joined
+Account → Global Group → Domain Local Group → Resource Permission
 ```
 
-## Active Directory Structure
+For example, a Finance employee is placed in `GG-Finance`; that group is nested into `DL-Finance-RW`, which receives the Finance SMB/NTFS permissions.
 
-```text
-corp.lucalab.test
-├── Domain Controllers
-│   └── LAB-DC01
-└── Copenhagen
-    ├── Computers
-    │   └── LAB-PC01
-    ├── Groups
-    └── Users
-        ├── Disabled Users
-        ├── Finance
-        ├── HR
-        ├── IT
-        └── Sales
-```
+### File shares and Group Policy
 
-## Group Policy
+Centralized shares are hosted on `LAB-DC01`:
 
-The lab uses separate GPOs for computer and user configuration:
+- `\\LAB-DC01\Finance`
+- `\\LAB-DC01\HR`
+- `\\LAB-DC01\Sales`
+- `\\LAB-DC01\Public`
 
-- `GPO-Workstation-Baseline` — linked to `Copenhagen\Computers`
-- `GPO-User-Baseline` — linked to `Copenhagen\Users`
-- `GPO-Department-Drive-Mapping` — linked to `Copenhagen\Users`
+Group Policy Preferences maps department drives by AD group membership:
 
-Department drives are mapped with Group Policy Preferences and item-level targeting:
-
-| Group | Drive | Share |
+| Target | Drive | Share |
 |---|---:|---|
 | `GG-Finance` | `F:` | `\\LAB-DC01\Finance` |
 | `GG-HR` | `H:` | `\\LAB-DC01\HR` |
 | `GG-Sales` | `S:` | `\\LAB-DC01\Sales` |
 | Domain users | `P:` | `\\LAB-DC01\Public` |
 
-## PowerShell Automation
+The lab also includes separate workstation and user baseline GPOs.
 
-[`New-LabUser.ps1`](scripts/New-LabUser.ps1) automates employee provisioning:
+### Least-privilege helpdesk administration
 
-- username and UPN generation
-- supported-department validation
-- OU and department-group validation
-- duplicate-account detection
-- AD user creation
-- first-logon password change
-- automatic department-group assignment
-- final account and membership verification
+`alex.helpdesk` is a normal IT account and member of `GG-Helpdesk-Admins`, but not Domain Admins. Scoped delegation allows routine user lifecycle tasks without broad administrative rights.
 
-[`Disable-LabUser.ps1`](scripts/Disable-LabUser.ps1) automates employee offboarding:
+Two PowerShell scripts implement the workflow:
 
-- account and group inspection
-- privileged-account protection
-- account disablement
-- explicit group-membership removal
-- movement to the `Disabled Users` OU
-- offboarding-date documentation
-- final state verification
+- [`New-LabUser.ps1`](scripts/New-LabUser.ps1) — validates inputs, creates the employee in the correct OU, assigns the department group, and verifies the result.
+- [`Disable-LabUser.ps1`](scripts/Disable-LabUser.ps1) — protects privileged accounts, disables the employee, removes explicit memberships, moves the account to Disabled Users, and verifies the final state.
 
-Both scripts support delegated `-Credential`, explicit `-Server`, and `-WhatIf` execution.
+Both support delegated `-Credential`, explicit `-Server`, `-WhatIf`, and confirmation controls.
 
-A full Sales lifecycle was tested using the delegated `alex.helpdesk` credential. The onboarding preview made no changes; the real run created `maja.nielsen` in Sales and assigned `GG-Sales`. The offboarding preview also made no changes; the confirmed real run disabled the account, removed `GG-Sales`, moved it to `Disabled Users`, and recorded the offboarding date.
+### DNS / domain troubleshooting
 
-## Delegated Helpdesk Administration
+A controlled fault was introduced by changing `LAB-PC01` DNS from `10.10.10.10` to `10.10.10.99`.
 
-A dedicated `GG-Helpdesk-Admins` group is used for scoped user-management permissions.
+The result isolated DNS as the cause:
 
-The test operator `alex.helpdesk` remained outside Domain Admins, Enterprise Admins, and Administrators while successfully completing onboarding and offboarding work with delegated permissions.
+```text
+IP connectivity to LAB-DC01       works
+TCP 445 by IP                     works
+DNS resolution                    fails
+SMB by FQDN                       fails
+Group Policy update               fails
+```
 
-This demonstrates a more realistic support model than using broad domain-administrator access for routine user lifecycle tasks.
+After restoring DNS to `10.10.10.10` and clearing the resolver cache, name resolution and Group Policy recovered and `Test-ComputerSecureChannel` returned `True`.
 
-## DNS and Network Troubleshooting
+## Evidence
 
-A controlled DNS failure was introduced on `LAB-PC01` by replacing the correct DNS server `10.10.10.10` with `10.10.10.99`.
+### Active Directory and permissions
 
-During the broken state:
+<table>
+<tr>
+<td width="50%"><img src="screenshots/01-domain-controller.png"><br><b>Domain controller</b></td>
+<td width="50%"><img src="screenshots/02-expanded-OU-tree.png"><br><b>Department OU structure</b></td>
+</tr>
+<tr>
+<td><img src="screenshots/03-security-group-members.png"><br><b>Finance security-group membership</b></td>
+<td><img src="screenshots/04-finance-ntfs-permissions.svg"><br><b>Finance NTFS permissions</b></td>
+</tr>
+</table>
 
-- ICMP to `10.10.10.10` still succeeded
-- SMB on TCP 445 worked by IP
-- `Resolve-DnsName` for the domain controller timed out
-- SMB by FQDN failed
-- `gpupdate /force` failed with name-resolution errors
-- `nltest /dsgetdc` still returned the DC, consistent with cached locator information
+### Group Policy and delegated administration
 
-After restoring DNS to `10.10.10.10` and flushing the resolver cache, name resolution, Group Policy, and the computer secure channel all verified successfully.
+<table>
+<tr>
+<td width="50%"><img src="screenshots/05-gpo-drive-mapping.png"><br><b>Group Policy drive mappings</b></td>
+<td width="50%"><img src="screenshots/06-delegated-helpdesk.png"><br><b>Delegated helpdesk membership</b></td>
+</tr>
+<tr>
+<td colspan="2"><img src="screenshots/07-powershell-onboarding-whatif.png"><br><b>Safe onboarding preview using -WhatIf</b></td>
+</tr>
+</table>
 
-See [DNS and network troubleshooting](docs/dns-network-troubleshooting.md).
+### Lifecycle and troubleshooting verification
+
+The following evidence panels are rendered from the captured PowerShell output so the results remain readable in the repository.
+
+<table>
+<tr>
+<td width="50%"><img src="screenshots/08-powershell-onboarding-success.svg"><br><b>Delegated onboarding success</b></td>
+<td width="50%"><img src="screenshots/09-powershell-offboarding-success.svg"><br><b>Delegated offboarding success</b></td>
+</tr>
+<tr>
+<td><img src="screenshots/10-dns-broken-state.svg"><br><b>DNS failure state</b></td>
+<td><img src="screenshots/11-dns-restored-state.svg"><br><b>DNS recovery state</b></td>
+</tr>
+</table>
+
+## Troubleshooting tickets
+
+The repository documents real configuration faults encountered or deliberately reproduced during the project:
+
+1. [Finance share access](tickets/001-finance-share-access.md)
+2. [Workstation inherited Domain Controller policy](tickets/002-workstation-inherited-domain-controller-policy.md)
+3. [User GPOs not applying](tickets/003-user-gpo-not-applying.md)
+4. [Workstation GPO computer settings disabled](tickets/004-workstation-gpo-computer-settings-disabled.md)
+5. [Incorrect DNS configuration breaks domain services](tickets/005-incorrect-dns-breaks-domain-services.md)
 
 ## Documentation
 
-- [Lab architecture](docs/architecture.md)
-- [Active Directory configuration](docs/active-directory.md)
+- [Architecture](docs/architecture.md)
+- [Active Directory](docs/active-directory.md)
 - [Directory structure](docs/directory-structure.md)
-- [Windows workstation domain join](docs/workstation-domain-join.md)
+- [Workstation domain join](docs/workstation-domain-join.md)
 - [File sharing and permissions](docs/file-sharing-and-permissions.md)
-- [Group Policy configuration](docs/group-policy.md)
-- [User onboarding automation](docs/user-onboarding.md)
-- [User offboarding automation](docs/user-offboarding.md)
+- [Group Policy](docs/group-policy.md)
+- [User onboarding](docs/user-onboarding.md)
+- [User offboarding](docs/user-offboarding.md)
 - [Delegated helpdesk administration](docs/delegated-helpdesk-administration.md)
 - [PowerShell automation safety](docs/powershell-automation-safety.md)
 - [DNS and network troubleshooting](docs/dns-network-troubleshooting.md)
 
-## Troubleshooting Tickets
+## Skills demonstrated
 
-- [Ticket 001 — Finance share access](tickets/001-finance-share-access.md)
-- [Ticket 002 — Workstation inherited Domain Controller policy](tickets/002-workstation-inherited-domain-controller-policy.md)
-- [Ticket 003 — User Group Policies not applying](tickets/003-user-gpo-not-applying.md)
-- [Ticket 004 — Workstation GPO computer settings disabled](tickets/004-workstation-gpo-computer-settings-disabled.md)
-- [Ticket 005 — Incorrect DNS configuration breaks domain services](tickets/005-incorrect-dns-breaks-domain-services.md)
-
-## Skills Demonstrated
-
-- Windows Server administration
+- Windows Server and Windows 11 administration
 - Active Directory users, groups, computers, and OUs
 - DNS and domain discovery
-- Windows domain joins and authentication
-- TCP/IP configuration and troubleshooting
+- Group Policy Management and Group Policy Preferences
 - SMB file sharing and NTFS permissions
-- AGDLP access-control design
-- Group Policy Management
-- Group Policy Preferences
-- item-level targeting
-- RSOP and `gpresult`
-- PowerShell AD automation
+- AGDLP-style access control
 - delegated least-privilege administration
-- `SupportsShouldProcess`, `-WhatIf`, and confirmations
-- credential handling and explicit server targeting
-- protected-account safeguards
-- DNS fault isolation with `Resolve-DnsName`, `Test-Connection`, and `Test-NetConnection`
-- secure-channel verification
-- Windows Security Event Log troubleshooting
+- PowerShell AD automation
+- `SupportsShouldProcess`, `-WhatIf`, and confirmation handling
+- RSOP / `gpresult`
+- `Resolve-DnsName`, `Test-NetConnection`, `nltest`, and secure-channel validation
+- Windows event-based troubleshooting and root-cause analysis
 - technical documentation
-- root-cause analysis
-
-## Next Stage
-
-The technical lab is now feature-complete for its intended portfolio scope. Remaining work is final repository polish, stronger screenshots/evidence, and a clean network diagram.
 
 ## Purpose
 
-This repository is a practical portfolio project intended to show the configuration, verification, troubleshooting, and documentation process behind a small Windows enterprise environment rather than only listing technologies on a CV.
+This project is designed as portfolio evidence for entry-level IT Support, Service Desk, IT Technician, and Junior IT Operations roles. It shows the configuration, validation, automation, and troubleshooting process behind a small Windows domain rather than only listing technologies on a CV.
