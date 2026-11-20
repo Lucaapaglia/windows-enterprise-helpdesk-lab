@@ -1,58 +1,31 @@
-# Ticket 001 — Finance User Cannot Access Department Share
+# Ticket 001 · Finance user gets “Access is denied”
 
-## User
+Oliver Nielsen, a Finance test user, could reach `LAB-DC01` but could not open `\\LAB-DC01\Finance`. File Explorer returned “Access is denied.”
 
-Oliver Nielsen — Finance
+## Investigation
 
-## Reported Issue
-
-User cannot access:
-
-`\\LAB-DC01\Finance`
-
-The user receives an "Access is denied" error.
-
-## Initial Checks
-
-Verified network connectivity:
+From the user's Windows session, I checked the server connection, the signed-in account and the groups in the current sign-in token.
 
 ```powershell
 ping LAB-DC01
-
-Verified domain identity:
-
 whoami
-
-Checked current security groups:
-
 whoami /groups
-Investigation
+```
 
-The Finance share uses group-based access:
-
-GG-Finance
-→ DL-Finance-RW
-→ Finance share
-
-Oliver Nielsen was not a member of GG-Finance.
-
-## Root Cause
-
-Incorrect Active Directory group membership.
+The share grants access through `DL-Finance-RW`. Members of `GG-Finance` receive that access because the Finance group is nested inside `DL-Finance-RW`. Oliver's account was missing from `GG-Finance`.
 
 ## Resolution
 
-Added the user back to the Finance security group:
+I restored the lab user's Finance membership. The existing share and NTFS permissions already granted the intended access to the department group.
 
-Add-ADGroupMember "GG-Finance" -Members "oliver.nielsen"
+```powershell
+Add-ADGroupMember -Identity 'GG-Finance' -Members 'oliver.nielsen'
+```
 
-The user signed out and signed back in so that Windows could obtain
-a new security token containing the updated group membership.
+The user signed out of Windows and signed back in so the new session picked up the group change.
 
-## Verification
+## Closure check
 
-The user successfully accessed:
+From the fresh user session, Oliver opened `\\LAB-DC01\Finance` and created a test file. That confirmed both folder access and the ability to write under the user's own account.
 
-\\LAB-DC01\Finance
-
-and created a test file.
+[Share and NTFS configuration](../docs/file-sharing-and-permissions.md) · [Employee guide for a missing Finance drive](../docs/finance-drive-help.md)

@@ -1,209 +1,37 @@
-# Ticket 005 — Incorrect DNS Configuration Breaks Domain Services
+# Ticket 005 · The server answers by IP, but Group Policy fails
 
-## Reported Issue
+On the Windows 11 workstation `LAB-PC01`, Group Policy stopped updating and the file server's name would not resolve. The domain controller still answered by IP. I reproduced this in the lab by changing only the workstation's DNS server from `10.10.10.10` to `10.10.10.99`.
 
-A domain-joined workstation could still reach the domain controller by IP address, but name-based access and Group Policy processing failed.
+## What narrowed it down
 
-## Environment
+The domain controller `LAB-DC01` provides DNS and file sharing for `corp.lucalab.test`. These checks were run from the affected workstation, `10.10.10.20`.
 
-```text
-LAB-PC01
-IPv4: 10.10.10.20
+| Check | Result during the fault |
+| --- | --- |
+| `Test-Connection 10.10.10.10 -Count 2` | Both requests succeeded, about 1 ms each. |
+| `Test-NetConnection 10.10.10.10 -Port 445` | `TcpTestSucceeded` was `True`. The workstation could reach the server's SMB port. |
+| `Resolve-DnsName LAB-DC01.corp.lucalab.test` | The lookup timed out. |
+| `Test-NetConnection LAB-DC01.corp.lucalab.test -Port 445` | The hostname lookup failed before a connection could be made. |
+| `gpupdate /force` | Windows reported that it could not resolve the names needed to apply policy. |
 
-LAB-DC01
-IPv4: 10.10.10.10
-DNS: 10.10.10.10
-Domain: corp.lucalab.test
-```
+One result could have sent the investigation in the wrong direction. `nltest /dsgetdc:corp.lucalab.test` still returned `LAB-DC01`, consistent with a cached domain controller lookup. The direct DNS query timed out, and the workstation's DNS settings showed `10.10.10.99`.
 
-Healthy workstation DNS configuration:
+[Captured failure output](../screenshots/10-dns-broken-state.svg)
 
-```text
-10.10.10.10
-```
+## Resolution and checks after recovery
 
-For the troubleshooting exercise, the workstation DNS server was deliberately changed to:
-
-```text
-10.10.10.99
-```
-
-## Symptoms
-
-Raw IP connectivity to the domain controller continued to work:
+I restored the lab DNS server on the workstation's Ethernet adapter and cleared its resolver cache.
 
 ```powershell
-Test-Connection 10.10.10.10 -Count 2
-```
-
-Both ICMP requests succeeded with approximately 1 ms response time.
-
-DNS resolution failed:
-
-```powershell
-Resolve-DnsName LAB-DC01.corp.lucalab.test
-```
-
-Result:
-
-```text
-This operation returned because the timeout period expired
-```
-
-SMB connectivity by IP also worked:
-
-```powershell
-Test-NetConnection 10.10.10.10 -Port 445
-```
-
-Result:
-
-```text
-TcpTestSucceeded : True
-```
-
-The same SMB test by FQDN failed because the hostname could not be resolved:
-
-```powershell
-Test-NetConnection LAB-DC01.corp.lucalab.test -Port 445
-```
-
-Result:
-
-```text
-Name resolution of LAB-DC01.corp.lucalab.test failed
-```
-
-Group Policy processing also failed:
-
-```powershell
-gpupdate /force
-```
-
-Windows reported that it could not resolve the computer name or user name.
-
-## Important Observation
-
-This command still returned the domain controller:
-
-```powershell
-nltest /dsgetdc:corp.lucalab.test
-```
-
-even while direct DNS resolution was failing.
-
-This is consistent with Windows using previously cached domain-controller locator information. Therefore, a successful `nltest /dsgetdc` result by itself was not enough to prove that current DNS resolution was healthy.
-
-The stronger evidence was the combination of:
-
-```text
-IP connectivity succeeds
-DNS resolution fails
-SMB by IP succeeds
-SMB by name fails
-Group Policy fails
-```
-
-## Root Cause
-
-`LAB-PC01` was configured to use an incorrect DNS server:
-
-```text
-10.10.10.99
-```
-
-Active Directory depends heavily on DNS for locating domain services. Basic network connectivity remained available because the workstation and domain controller were still on the same IP network.
-
-## Resolution
-
-The workstation DNS server was restored:
-
-```powershell
-Set-DnsClientServerAddress `
-  -InterfaceAlias "Ethernet" `
-  -ServerAddresses "10.10.10.10"
-```
-
-The DNS client cache was then cleared:
-
-```powershell
+Set-DnsClientServerAddress -InterfaceAlias 'Ethernet' -ServerAddresses '10.10.10.10'
 ipconfig /flushdns
 ```
 
-## Verification
+| Check repeated on LAB-PC01 | Result after the change |
+| --- | --- |
+| `Resolve-DnsName LAB-DC01.corp.lucalab.test` | The name resolved to `10.10.10.10`. |
+| `nltest /dsgetdc:corp.lucalab.test` | Domain controller discovery returned `LAB-DC01`. |
+| `gpupdate /force` | Windows reported successful updates for both computer and user policy. |
+| `Test-ComputerSecureChannel -Verbose` | Returned `True` for the workstation's channel to the domain. |
 
-DNS resolution recovered:
-
-```powershell
-Resolve-DnsName LAB-DC01.corp.lucalab.test
-```
-
-Result:
-
-```text
-LAB-DC01.corp.lucalab.test -> 10.10.10.10
-```
-
-Domain-controller discovery succeeded:
-
-```powershell
-nltest /dsgetdc:corp.lucalab.test
-```
-
-Group Policy successfully updated:
-
-```text
-Computer Policy update has completed successfully.
-User Policy update has completed successfully.
-```
-
-The computer secure channel was also verified:
-
-```powershell
-Test-ComputerSecureChannel -Verbose
-```
-
-Result:
-
-```text
-True
-The secure channel between the local computer and the domain corp.lucalab.test is in good condition.
-```
-
-## Troubleshooting Logic
-
-```text
-Can the DC be reached by IP?
-        |
-       Yes
-        |
-        v
-Can the DC be resolved by DNS?
-        |
-       No
-        |
-        v
-Check workstation DNS configuration
-        |
-        v
-Restore AD DNS server
-        |
-        v
-Flush resolver cache
-        |
-        v
-Retest DNS, Group Policy, and secure channel
-```
-
-## Skills Demonstrated
-
-- TCP/IP troubleshooting
-- DNS client configuration
-- Active Directory DNS dependency
-- `Resolve-DnsName`
-- `Test-Connection`
-- `Test-NetConnection`
-- `nltest`
-- Group Policy troubleshooting
-- secure-channel verification
-- root-cause isolation
+[Captured recovery output](../screenshots/11-dns-restored-state.svg) · [Network baseline and full lab notes](../docs/dns-network-troubleshooting.md)
